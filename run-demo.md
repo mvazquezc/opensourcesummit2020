@@ -119,14 +119,8 @@ We are going to use WebHooks in order to run Pipelines automatically when new co
         git commit -m "Release updated to $NEW_RELEASE"
         git push origin master
         ~~~
-    3. A new PipelineRun will be fired
-        
-        ~~~sh
-        tkn -n tekton-reversewords pipeline list
-        
-        NAME                           AGE          LAST RUN                                STARTED          DURATION   STATUS
-        reverse-words-build-pipeline   1 hour ago   reversewords-build-pipeline-run-wmzrn   22 seconds ago   ---        Running
-        ~~~
+    3. Connect to the Tekton Dashboard (https://tekton-dashboard.oss20.kubelabs.org)
+       1. You can see the PipelineRun on the dashboard and follow the log 
     4. We can check the running images for our application pod and see that when the pipeline finishes a new deployment is triggered on ArgoCD
     5. When the Build pipeline finishes we can promote the new build to production
 

@@ -61,9 +61,10 @@ spec:
           servicePort: https
 EOF
 ARGOCD_PASSWORD=$(kubectl -n argocd get pods -l app.kubernetes.io/name=argocd-server -o name | awk -F "/" '{print $2}')
-echo "Deploy Tekton Pipelines and Events"
+echo "Deploy Tekton Pipelines, Events and Dashboard"
 kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.12.1/release.yaml
 kubectl apply -f https://storage.googleapis.com/tekton-releases/triggers/previous/v0.5.0/release.yaml
+kubectl apply -f https://github.com/tektoncd/dashboard/releases/download/v0.7.1/tekton-dashboard-release.yaml
 sleep 5
 echo -ne "Waiting for Tekton Webhook Controller to be ready"
 until [[ $(kubectl -n tekton-pipelines get pods -l app.kubernetes.io/component=webhook-controller -o jsonpath='{.items[0].status.containerStatuses[0].ready}' 2>/dev/null) == "true" ]]; do echo -ne "."; sleep 5;done
@@ -144,6 +145,44 @@ spec:
       - backend:
           serviceName: el-reversewords-webhook
           servicePort: 8080
+EOF
+openssl genrsa -out ~/tls-certs/tekton-dashboard.key 2048
+openssl req -new -key ~/tls-certs/tekton-dashboard.key -out ~/tls-certs/tekton-dashboard.csr -subj "/C=US/ST=TX/L=Austin/O=RedHat/CN=tekton-dashboard.octo.eng.rdu2.redhat.com"
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1beta1
+kind: CertificateSigningRequest
+metadata:
+  name: tekton-dashboard-tls
+spec:
+  request: $(cat ~/tls-certs/tekton-dashboard.csr | base64 | tr -d '\n')
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+EOF
+ubectl certificate approve tekton-dashboard-tls
+kubectl get csr tekton-dashboard-tls -o jsonpath='{.status.certificate}' | base64 -d > ~/tls-certs/tekton-dashboard.crt
+kubectl -n tekton-pipelines create secret generic tekton-dashboard-tls --from-file=tls.crt=tekton-dashboard.crt --from-file=tls.key=tekton-dashboard.key
+cat <<EOF | kubectl -n tekton-pipelines create -f -
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: tekton-dashboard
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+      - tekton-dashboard.oss20.kubelabs.org
+      secretName: tekton-dashboard-tls
+  rules:
+  - host: tekton-dashboard.oss20.kubelabs.org
+    http:
+      paths:
+      - backend:
+          serviceName: tekton-dashboard
+          servicePort: 9097
 EOF
 argocd login argocd.oss20.kubelabs.org --insecure --username admin --password $ARGOCD_PASSWORD
 argocd account update-password --account admin --current-password $ARGOCD_PASSWORD --new-password 'r3dh4t1!'

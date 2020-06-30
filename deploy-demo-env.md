@@ -68,11 +68,12 @@
               servicePort: https
     EOF
     ~~~
-7.  Deploy Tekton Pipelines and Tekton Triggers
+7.  Deploy Tekton Pipelines, Tekton Triggers and Tekton Dashboard
 
     ~~~sh
     kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.12.1/release.yaml
     kubectl apply -f https://storage.googleapis.com/tekton-releases/triggers/previous/v0.5.0/release.yaml
+    kubectl apply -f https://github.com/tektoncd/dashboard/releases/download/v0.7.1/tekton-dashboard-release.yaml
     ~~~
 
 # Create the required Tekton manifests
@@ -251,6 +252,66 @@
           - backend:
               serviceName: el-reversewords-webhook
               servicePort: 8080
+    EOF
+    ~~~
+26. We need to provide an ingress point for the Tekton Dashboard, we want it to be TLS, so we need to generate some certs
+
+    ~~~sh
+    cd ~/tls-certs/
+    openssl genrsa -out ~/tls-certs/tekton-dashboard.key 2048
+    openssl req -new -key ~/tls-certs/tekton-dashboard.key -out ~/tls-certs/tekton-dashboard.csr -subj "/C=US/ST=TX/L=Austin/O=RedHat/CN=tekton-dashboard.oss20.kubelabs.org"
+    ~~~
+27. Send the CSR to the Kubernetes server to get it signed with the Kubernetes CA
+
+    ~~~sh
+    cat <<EOF | kubectl apply -f -
+    apiVersion: certificates.k8s.io/v1beta1
+    kind: CertificateSigningRequest
+    metadata:
+      name: tekton-dashboard-tls
+    spec:
+      request: $(cat ~/tls-certs/tekton-dashboard.csr | base64 | tr -d '\n')
+      usages:
+      - digital signature
+      - key encipherment
+      - server auth
+    EOF
+    ~~~
+28. Approve the CSR and save the cert into a file
+
+    ~~~sh
+    kubectl certificate approve tekton-dashboard-tls
+    kubectl get csr tekton-dashboard-tls -o jsonpath='{.status.certificate}' | base64 -d > ~/tls-certs/tekton-dashboard.crt
+    ~~~
+29. Create a secret with the TLS certificates
+
+    ~~~sh
+    cd ~/tls-certs/
+    kubectl -n tekton-pipelines create secret generic tekton-dashboard-tls --from-file=tls.crt=tekton-dashboard.crt --from-file=tls.key=tekton-dashboard.key
+    ~~~
+30. Configure a TLS ingress which uses the certs created
+
+    ~~~sh
+    cat <<EOF | kubectl -n tekton-pipelines create -f -
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    metadata:
+      name: github-webhook-eventlistener
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    spec:
+      tls:
+        - hosts:
+          - tekton-dashboard.oss20.kubelabs.org
+          secretName: tekton-dashboard-tls
+      rules:
+      - host: tekton-dashboard.oss20.kubelabs.org
+        http:
+          paths:
+          - backend:
+              serviceName: tekton-dashboard
+              servicePort: 9097
     EOF
     ~~~
 
