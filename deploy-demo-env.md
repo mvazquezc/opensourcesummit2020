@@ -195,7 +195,7 @@
     ~~~sh
     kubectl -n tekton-reversewords create -f github-triggerbinding.yaml
     ~~~
-20. Create the TriggerTemplate and Event Listener to run the Pipeline when new commits hit the master branch of our app repository
+20. Create the TriggerTemplate and Event Listener to run the Pipeline when new commits hit the main branch of our app repository
 
     ~~~sh
     WEBHOOK_SECRET="v3r1s3cur3"

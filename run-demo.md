@@ -70,7 +70,7 @@
 
 We are going to use WebHooks in order to run Pipelines automatically when new commits hit the branches of our app and cicd repositories.
 
-* Our first webhook will receive events from the application repository, when new code hits the master branch we will trigger the build pipeline.
+* Our first webhook will receive events from the application repository, when new code hits the main branch we will trigger the build pipeline.
 * Our second webhook will receive events from the cicd repository, when new code hits `stage` or `prod` branches we will trigger a new deployment using Argo CD.
 
 1. We will configure the first webhook on the app repo
@@ -114,7 +114,7 @@ We are going to use WebHooks in order to run Pipelines automatically when new co
         sudo curl -L https://github.com/tektoncd/cli/releases/download/v0.10.0/tkn_0.10.0_Linux_x86_64.tar.gz | tar xz tkn 
         chown root: tkn && mv tkn /usr/bin/
         ~~~
-    2. We need to commit to the master branch, let's update the release number
+    2. We need to commit to the main branch, let's update the release number
      
         ~~~sh
         cd ~/reverse-words/
@@ -125,7 +125,7 @@ We are going to use WebHooks in order to run Pipelines automatically when new co
         git diff main.go
         git add main.go
         git commit -m "Release updated to $NEW_RELEASE"
-        git push origin master
+        git push origin main
         ~~~
     3. Connect to the Tekton Dashboard (https://tekton-dashboard.<your-custom-domain>)
        1. You can see the PipelineRun on the dashboard and follow the log 
