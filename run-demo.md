@@ -14,10 +14,14 @@
 
 1. Add the Git repository for our application to Argo CD
 
+    > **NOTE**: Use your fork on the command below
+
     ~~~sh
     argocd repo add https://github.com/mvazquezc/reverse-words-cicd.git --name reversewords-cicd
     ~~~
 2. Edit the ingresses for our applications before creating them in Argo CD
+
+    > **NOTE**: Update the ingresses on your fork to match your environment hostnames
 
     ~~~sh
     cd ~/reverse-words-cicd
@@ -38,6 +42,8 @@
     ~~~
 3. Define Development application
 
+    > **NOTE**: Use your fork on the command below
+
     ~~~sh
     argocd app create --project default --name reverse-words-stage \
     --repo https://github.com/mvazquezc/reverse-words-cicd.git \
@@ -47,6 +53,8 @@
     --self-heal --sync-policy automated
     ~~~
 4. Define Production application
+
+    > **NOTE**: Use your fork on the command below
 
     ~~~sh
     argocd app create --project default --name reverse-words-production \
@@ -119,10 +127,12 @@ We are going to use WebHooks in order to run Pipelines automatically when new co
         git commit -m "Release updated to $NEW_RELEASE"
         git push origin master
         ~~~
-    3. Connect to the Tekton Dashboard (https://tekton-dashboard.oss20.kubelabs.org)
+    3. Connect to the Tekton Dashboard (https://tekton-dashboard.<your-custom-domain>)
        1. You can see the PipelineRun on the dashboard and follow the log 
     4. We can check the running images for our application pod and see that when the pipeline finishes a new deployment is triggered on ArgoCD
     5. When the Build pipeline finishes we can promote the new build to production
+
+        > **NOTE**: Change the stageAppUrl to match your environment ingress
 
         ~~~sh
         tkn -n tekton-reversewords pipeline start reverse-words-promote-pipeline -r app-git=reverse-words-cicd-git -p pathToDeploymentFile=./deployment.yaml -p stageBranch=stage -p stageAppUrl=http://reversewords-dev.oss20.kubelabs.org

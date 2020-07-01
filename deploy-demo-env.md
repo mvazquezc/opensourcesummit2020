@@ -47,6 +47,8 @@
     kubectl -n ingress-nginx patch deployment ingress-nginx-controller -p '{"spec":{"template":{"spec":{"$setElementOrder/containers":[{"name":"controller"}],"containers":[{"args":["/nginx-ingress-controller","--election-id=ingress-controller-leader","--ingress-class=nginx","--configmap=ingress-nginx/ingress-nginx-controller","--validating-webhook=:8443","--validating-webhook-certificate=/usr/local/certificates/cert","--validating-webhook-key=/usr/local/certificates/key","--publish-status-address=localhost","--enable-ssl-passthrough"],"name":"controller"}]}}}}'
     ~~~
 6.  Create an ingress object for accessing Argo CD WebUI
+     
+    > **NOTE**: You need to use your own hostname for the Ingress hostname
 
     ~~~sh
     cat <<EOF | kubectl -n argocd apply -f -
@@ -78,7 +80,9 @@
 
 # Create the required Tekton manifests
 
-1. Clone the Git repositories (ssh keys are already in place)
+1. Clone the Git repositories (you will need the ssh keys are already in place)
+
+    > **NOTE**: You need to fork these repositories and use your fork (so you have full-access)
 
     ~~~sh
     git clone git@github.com:mvazquezc/reverse-words.git ~/reverse-words
@@ -104,6 +108,8 @@
     sed -i "s/<password>/$QUAY_PASSWORD/" quay-credentials.yaml
     ~~~
 5. Create a Secret containing the credentials to access our Git repository
+
+    > **NOTE**: You need to provide a token with push access to the cicd repository
     
     ~~~sh
     read -s GIT_AUTH_TOKEN
@@ -140,6 +146,8 @@
     kubectl -n tekton-reversewords create -f image-updater-task.yaml
     ~~~
 12. Edit some parameters from our Build Pipeline definition
+    
+    > **NOTE**: You need to use your forks address in the substitutions below
 
     ~~~sh
     sed -i "s|<reversewords_git_repo>|https://github.com/mvazquezc/reverse-words|" build-pipeline.yaml
@@ -163,6 +171,8 @@
     kubectl -n tekton-reversewords create -f get-stage-release-task.yaml
     ~~~
 16. Edit some parameters from our Promoter Pipeline definition
+
+    > **NOTE**: You need to use your forks address/quay account in the substitutions below
 
     ~~~sh
     sed -i "s|<reversewords_cicd_git_repo>|https://github.com/mvazquezc/reverse-words-cicd|" promote-to-prod-pipeline.yaml
@@ -194,6 +204,8 @@
     kubectl -n tekton-reversewords create -f webhook.yaml
     ~~~
 21. We need to provide an ingress point for our EventListener, we want it to be TLS, so we need to generate some certs
+
+    > **NOTE**: Use your own custom hostname for the tekton-events component when generating the key
 
     ~~~sh
     mkdir -p ~/tls-certs/
@@ -231,6 +243,8 @@
     ~~~
 25. Configure a TLS ingress which uses the certs created
 
+    > **NOTE**: Use your own custom hostname
+
     ~~~sh
     cat <<EOF | kubectl -n tekton-reversewords create -f -
     apiVersion: networking.k8s.io/v1beta1
@@ -255,6 +269,8 @@
     EOF
     ~~~
 26. We need to provide an ingress point for the Tekton Dashboard, we want it to be TLS, so we need to generate some certs
+
+    > **NOTE**: Use your own custom hostname for the tekton-dashboard component when generating the key
 
     ~~~sh
     cd ~/tls-certs/
@@ -291,6 +307,8 @@
     ~~~
 30. Configure a TLS ingress which uses the certs created
 
+    > **NOTE**: Use your own custom hostname
+
     ~~~sh
     cat <<EOF | kubectl -n tekton-pipelines create -f -
     apiVersion: networking.k8s.io/v1beta1
@@ -326,6 +344,8 @@
     ~~~
 2. Login into Argo CD from the Cli
 
+    > **NOTE**: Use your custom Argo CD ingress for login
+    
     ~~~sh
     argocd login argocd.oss20.kubelabs.org --insecure --username admin --password $(cat ~/argocd-password)
     ~~~
