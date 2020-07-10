@@ -160,7 +160,7 @@ spec:
   - key encipherment
   - server auth
 EOF
-ubectl certificate approve tekton-dashboard-tls
+kubectl certificate approve tekton-dashboard-tls
 kubectl get csr tekton-dashboard-tls -o jsonpath='{.status.certificate}' | base64 -d > ~/tls-certs/tekton-dashboard.crt
 kubectl -n tekton-pipelines create secret generic tekton-dashboard-tls --from-file=tls.crt=tekton-dashboard.crt --from-file=tls.key=tekton-dashboard.key
 cat <<EOF | kubectl -n tekton-pipelines create -f -
